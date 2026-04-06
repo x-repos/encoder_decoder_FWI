@@ -1,0 +1,38 @@
+============================================================
+Starting training for 350 iterations
+============================================================
+  iter    1/350 | misfit 2.001733e-09 | MSE(Vp) 9034.35  MSE(Vs) 1627.15  MSE(rho) 1959.45 | 23.0s
+  iter    2/350 | misfit 2.001734e-09 | MSE(Vp) 9020.92  MSE(Vs) 1620.82  MSE(rho) 1959.30 | 22.0s
+  iter    3/350 | misfit 2.001734e-09 | MSE(Vp) 8979.62  MSE(Vs) 1616.44  MSE(rho) 1959.36 | 24.2s
+  iter    4/350 | misfit 2.001733e-09 | MSE(Vp) 8941.10  MSE(Vs) 1611.00  MSE(rho) 1959.53 | 22.1s
+  iter    5/350 | misfit 2.001733e-09 | MSE(Vp) 8913.41  MSE(Vs) 1605.74  MSE(rho) 1959.77 | 21.8s
+  iter    6/350 | misfit 2.001733e-09 | MSE(Vp) 8896.45  MSE(Vs) 1601.94  MSE(rho) 1959.84 | 22.7s
+  iter    7/350 | misfit 2.001733e-09 | MSE(Vp) 8888.19  MSE(Vs) 1599.08  MSE(rho) 1960.11 | 24.8s
+  iter    8/350 | misfit 2.001733e-09 | MSE(Vp) 8870.48  MSE(Vs) 1599.05  MSE(rho) 1960.80 | 22.3s
+  iter    9/350 | misfit 2.001733e-09 | MSE(Vp) 8859.77  MSE(Vs) 1600.07  MSE(rho) 1961.54 | 22.1s
+  iter   10/350 | misfit 2.001733e-09 | MSE(Vp) 8850.57  MSE(Vs) 1598.81  MSE(rho) 1961.95 | 22.4s
+  iter   11/350 | misfit 2.001734e-09 | MSE(Vp) 8840.76  MSE(Vs) 1593.55  MSE(rho) 1962.32 | 22.5s
+  iter   12/350 | misfit 2.001733e-09 | MSE(Vp) 8825.00  MSE(Vs) 1587.19  MSE(rho) 1962.57 | 21.9s
+  iter   13/350 | misfit 2.001733e-09 | MSE(Vp) 8818.99  MSE(Vs) 1581.27  MSE(rho) 1962.79 | 22.0s
+  iter   14/350 | misfit 2.001733e-09 | MSE(Vp) 8814.27  MSE(Vs) 1578.07  MSE(rho) 1963.39 | 22.0s
+  iter   15/350 | misfit 2.001733e-09 | MSE(Vp) 8791.06  MSE(Vs) 1574.93  MSE(rho) 1964.39 | 22.5s
+  iter   16/350 | misfit 2.001733e-09 | MSE(Vp) 8793.03  MSE(Vs) 1567.10  MSE(rho) 1965.13 | 21.8s
+  iter   17/350 | misfit 2.001733e-09 | MSE(Vp) 8797.20  MSE(Vs) 1561.95  MSE(rho) 1965.53 | 21.5s
+  iter   18/350 | misfit 2.001733e-09 | MSE(Vp) 8769.50  MSE(Vs) 1564.58  MSE(rho) 1965.78 | 21.7s
+  iter   19/350 | misfit 2.001732e-09 | MSE(Vp) 8782.49  MSE(Vs) 1561.06  MSE(rho) 1966.55 | 22.4s
+  iter   20/350 | misfit 2.001731e-09 | MSE(Vp) 8772.75  MSE(Vs) 1561.81  MSE(rho) 1967.53 | 21.7s
+  iter   21/350 | misfit 2.001730e-09 | MSE(Vp) 8767.64  MSE(Vs) 1561.63  MSE(rho) 1968.27 | 22.1s
+  iter   22/350 | misfit 2.001730e-09 | MSE(Vp) 8762.91  MSE(Vs) 1557.59  MSE(rho) 1968.69 | 22.8s
+  iter   23/350 | misfit 2.001730e-09 | MSE(Vp) 8772.37  MSE(Vs) 1562.46  MSE(rho) 1969.16 | 29.4s
+  iter   24/350 | misfit 2.001730e-09 | MSE(Vp) 8722.21  MSE(Vs) 1545.40  MSE(rho) 1969.64 | 45.6s
+  iter   25/350 | misfit 2.001730e-09 | MSE(Vp) 8797.81  MSE(Vs) 1547.12  MSE(rho) 1969.89 | 37.8s
+  iter   26/350 | misfit 2.001731e-09 | MSE(Vp) 8726.75  MSE(Vs) 1550.05  MSE(rho) 1969.96 | 33.4s
+  iter   27/350 | misfit 2.001731e-09 | MSE(Vp) 8696.72  MSE(Vs) 1546.81  MSE(rho) 1970.03 | 21.6s
+  iter   28/350 | misfit 2.001730e-09 | MSE(Vp) 8778.70  MSE(Vs) 1540.56  MSE(rho) 1970.06 | 21.8s
+  iter   29/350 | misfit 2.001729e-09 | MSE(Vp) 8732.85  MSE(Vs) 1535.82  MSE(rho) 1969.75 | 22.3s
+  iter   30/350 | misfit 2.001729e-09 | MSE(Vp) 8729.70  MSE(Vs) 1540.42  MSE(rho) 1968.91 | 22.7s
+  iter   31/350 | misfit 2.001729e-09 | MSE(Vp) 8775.27  MSE(Vs) 1544.39  MSE(rho) 1968.21 | 22.0s
+  iter   32/350 | misfit 2.001729e-09 | MSE(Vp) 8720.90  MSE(Vs) 1542.13  MSE(rho) 1967.82 | 22.9s
+  iter   33/350 | misfit 2.001729e-09 | MSE(Vp) 8704.28  MSE(Vs) 1537.55  MSE(rho) 1967.52 | 22.6s
+  iter   34/350 | misfit 2.001730e-09 | MSE(Vp) 8749.78  MSE(Vs) 1528.58  MSE(rho) 1967.23 | 22.2s
+  iter   35/350 | misfit 2.001730e-09 | MSE(Vp) 8735.38  MSE(Vs) 1550.74  MSE(rho) 1966.72 | 23.2s

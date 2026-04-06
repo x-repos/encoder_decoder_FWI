@@ -51,7 +51,7 @@ Requires:
 ### Train on STH model
 
 ```bash
-uv run python train.py --n_iters 350 --lr 0.0025
+uv run python -u train.py --n_iters 350 --lr 0.0025 --log_interval 1 --save_interval 10 2>&1 | tee logs/encoder_decoder_v3.log
 ```
 
 Each iteration runs DENISE forward+adjoint (~25s on 14 cores), so 350 iterations takes ~2.5 hours.
