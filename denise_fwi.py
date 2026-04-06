@@ -292,15 +292,15 @@ class DeniseInterface:
     def _compute_misfit_from_seismograms(self, d):
         """Compute L2 misfit from synthetic vs observed seismograms.
 
-        After FWI runs, the synthetic seismograms from the current model are
-        written to {fwi_folder}/su/.  Observed data lives in {obs_folder}/su/.
+        After FWI runs, DENISE writes synthetic seismograms with '.it1' suffix
+        (e.g. seis_x.su.shot1.it1).  Observed data lives in {obs_folder}/su/.
         The L2 misfit is 0.5 * sum((syn - obs)^2).
         """
-        # Point at FWI folder to load synthetics
+        # Load synthetics: DENISE writes .it1 files for the current iteration
         self._set_save_folder(self.fwi_folder)
-        synth_x = d.get_shots(keys=["_x"])
+        synth_x = d.get_shots(keys=["_x", ".it1"])
 
-        # Point at obs folder to load observed
+        # Load observed from the obs folder
         self._set_save_folder(self.obs_folder)
         obs_x = d.get_shots(keys=["_x"])
 
