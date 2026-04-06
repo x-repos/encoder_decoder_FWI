@@ -33,7 +33,7 @@ class DeniseInterface:
         obs_folder="./outputs_sth_obs/",
         fwi_folder="./outputs_sth_fwi/",
         run_command=RUN_CMD,
-        verbose=1,
+        verbose=0,
     ):
         self.root = root
         self.obs_folder = os.path.abspath(obs_folder)
@@ -82,7 +82,10 @@ class DeniseInterface:
         """
         self._set_save_folder(self.obs_folder)
         d = self._denise
-        d.forward(model, src, rec, run_command=self.run_command)
+        log_file = os.path.join(self.obs_folder, "denise_forward.log")
+        cmd_suffix = f" > {log_file} 2>&1"
+        d.forward(model, src, rec,
+                  run_command=self.run_command + cmd_suffix)
         # After forward(), DATA_DIR = {obs_folder}/su/seis  (prefix for shot files)
         self._obs_data_dir = d.DATA_DIR
         shots = d.get_shots(keys=["_x"])
@@ -175,7 +178,11 @@ class DeniseInterface:
         # Note: DENISE may segfault in L-BFGS after writing gradients.
         # The adjoint gradients are written to jacobian/ before the crash,
         # so we proceed to read them regardless.
-        d.fwi(model, src, rec, run_command=self.run_command)
+        # Redirect stdout/stderr to log file to keep terminal clean.
+        log_file = os.path.join(self.fwi_folder, "denise_run.log")
+        cmd_suffix = f" > {log_file} 2>&1"
+        d.fwi(model, src, rec,
+              run_command=self.run_command + cmd_suffix)
 
         # --- Read misfit -------------------------------------------------------
         # DENISE writes the misfit log after the L-BFGS update step, which may
