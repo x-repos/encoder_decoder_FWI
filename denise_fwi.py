@@ -167,7 +167,6 @@ class DeniseInterface:
         d.NT = int(d.TIME / d.DT)
 
         # --- Write lambda/mu model files for INVMAT1=3 -------------------------
-        # INVMAT1=3 (lambda/mu/rho parameterization) requires .lam and .mu files
         from pyapi_denise import _write_binary
         mu_arr = rho * vs**2
         lam_arr = rho * (vp**2 - 2.0 * vs**2)
@@ -176,7 +175,7 @@ class DeniseInterface:
 
         # --- Configure single-iteration FWI ------------------------------------
         d.ITERMAX = 1
-        d.INVMAT1 = 3       # gradient in lambda/mu/rho parameterization
+        d.INVMAT1 = 3       # gradient in lambda/mu/rho (produces all 3 files)
         d.GRAD_METHOD = 1   # PCG (L-BFGS=2 segfaults on 1 iteration)
         d.fwi_stages = []
         d.add_fwi_stage(
@@ -204,22 +203,17 @@ class DeniseInterface:
             misfit = self._compute_misfit_from_seismograms(d)
 
         # --- Read gradients ----------------------------------------------------
-        # With INVMAT1=3, DENISE writes three gradient files:
+        # With INVMAT1=3, DENISE writes lambda/mu/rho gradients:
         #   _c.old     -> dE/dlambda
         #   _c_u.old   -> dE/dmu
         #   _c_rho.old -> dE/drho
-        # Convert to Vp/Vs/rho using the chain rule:
+        # Convert to Vp/Vs/rho via chain rule:
         #   lambda = rho*(Vp^2 - 2*Vs^2),  mu = rho*Vs^2
-        #   dE/dVp  = dE/dlambda * 2*rho*Vp
-        #   dE/dVs  = dE/dlambda * (-4*rho*Vs) + dE/dmu * 2*rho*Vs
-        #   dE/drho = dE/dlambda * (Vp^2 - 2*Vs^2) + dE/dmu * Vs^2 + dE/drho_direct
-        grad_lam, grad_mu, grad_rho_direct = self._read_lame_gradients(d)
+        grad_lam, grad_mu, grad_rho_lame = self._read_gradients(d)
 
         grad_vp = grad_lam * (2.0 * rho * vp)
         grad_vs = grad_lam * (-4.0 * rho * vs) + grad_mu * (2.0 * rho * vs)
-        grad_rho = (grad_lam * (vp**2 - 2.0 * vs**2)
-                    + grad_mu * (vs**2)
-                    + grad_rho_direct)
+        grad_rho = grad_lam * (vp**2 - 2.0 * vs**2) + grad_mu * vs**2
 
         return misfit, grad_vp, grad_vs, grad_rho
 
@@ -246,26 +240,26 @@ class DeniseInterface:
             # multiple iterations: take the last row, second column
             return float(data[-1, 1])
 
-    def _read_lame_gradients(self, d):
-        """Read lambda, mu, and rho gradients from DENISE jacobian output.
+    def _read_gradients(self, d):
+        """Read Vp, Vs, rho gradients from DENISE jacobian output.
 
-        With INVMAT1=3, DENISE writes merged gradient files:
-            gradient_<prefix>_c.old       ->  dE/dlambda
-            gradient_<prefix>_c_u.old     ->  dE/dmu
+        With INVMAT1=1 + GRAD_METHOD=1 (PCG), DENISE writes:
+            gradient_<prefix>_c.old       ->  dE/dVp
+            gradient_<prefix>_c_u.old     ->  dE/dVs
             gradient_<prefix>_c_rho.old   ->  dE/drho
 
-        Returns (grad_lambda, grad_mu, grad_rho) as (nz, nx) numpy arrays.
+        Returns (grad_vp, grad_vs, grad_rho) as (nz, nx) numpy arrays.
         """
         jacobian_dir = os.path.join(self.fwi_folder, "jacobian")
         nz, nx = d.NY, d.NX
         expected_size = nx * nz
 
-        grad_lambda = np.zeros((nz, nx), dtype=np.float32)
-        grad_mu = np.zeros((nz, nx), dtype=np.float32)
+        grad_vp = np.zeros((nz, nx), dtype=np.float32)
+        grad_vs = np.zeros((nz, nx), dtype=np.float32)
         grad_rho = np.zeros((nz, nx), dtype=np.float32)
 
         if not os.path.isdir(jacobian_dir):
-            return grad_lambda, grad_mu, grad_rho
+            return grad_vp, grad_vs, grad_rho
 
         # Find merged gradient files (skip PE fragment files like .0.0)
         for fname in os.listdir(jacobian_dir):
@@ -283,17 +277,16 @@ class DeniseInterface:
             # Reshape: DENISE stores (NX, NY), need transpose+flip
             arr = np.flipud(data.reshape(nx, nz).T).copy()
 
-            # Identify gradient type from filename (INVMAT1=3 convention)
-            # Strip control characters for matching
+            # Identify gradient type from filename
             clean = fname.replace(chr(14), "")
             if "_c_rho.old" in clean:
                 grad_rho = arr
             elif "_c_u.old" in clean:
-                grad_mu = arr
+                grad_vs = arr
             elif "_c.old" in clean:
-                grad_lambda = arr
+                grad_vp = arr
 
-        return grad_lambda, grad_mu, grad_rho
+        return grad_vp, grad_vs, grad_rho
 
     def _compute_misfit_from_seismograms(self, d):
         """Compute L2 misfit from synthetic vs observed seismograms.
