@@ -32,23 +32,22 @@ Shot gathers (Vx, Vz)
 
 **True model:**
 - Grid: 294 (x) x 150 (z), dx = 10m
-- Two-layer half-space with water layer on top
-- Vp range: 1500 - 3000 m/s (water layer ~1500, elastic background + square anomalies up to 3000)
-- Vs range: 800 - 1700 m/s (0 in water, elastic layer with triangle anomalies)
-- rho range: 1800 - 2300 kg/m3 (water ~1000, elastic layer with hourglass anomalies)
+- Two elastic layers, interface at 1.2 km (z=120 grid points)
+- Top layer (0-1.2 km): Vp=1500 m/s, Vs=900 m/s, rho=1800 kg/m3
+- Bottom layer (1.2-1.5 km): Vp=3000 m/s, Vs=1700 m/s, rho=2300 kg/m3
+- Anomaly values in top layer: Vp=2000, Vs=1200, rho=2100
 - 4 square anomalies embedded in Vp field
 - 4 triangle anomalies embedded in Vs field
 - 4 hourglass anomalies embedded in rho field
-- Geometric positions derived from Fig. 3(a) of paper
 
 **Initial model:**
-- Same two-layer half-space without geometric shapes
+- Same two-layer structure without geometric shapes
 - Constant values per layer matching the background
 - This serves as the "starting model" (SM) added to CNN output
 
 **Acquisition:**
-- 28 sources, spacing ~80m, shallow depth (~10m)
-- 223 receivers, spacing ~10m, at surface
+- 28 sources, spacing 80m, at surface (z=10m)
+- 223 receivers, spacing 10m, at 0.1 km depth (z=100m), centered on model
 - Source: Ricker wavelet, 10 Hz center frequency
 - Recording: 5s, dt determined by CFL condition (~1ms)
 
@@ -84,7 +83,7 @@ Shot gathers (Vx, Vz)
 
 **Output:**
 - CNN output = residual added to initial (starting) model
-- Clamped to physical bounds: Vp [0, 6000], Vs [0, 4000], rho [1000, 3000]
+- Clamped to STH model bounds: Vp [1500, 3000] m/s, Vs [900, 1700] m/s, rho [1800, 2300] kg/m3
 
 **Weight initialization:** Kaiming (He) initialization for ReLU-family activations, per reference [59] in paper.
 
@@ -110,7 +109,7 @@ Shot gathers (Vx, Vz)
 
 **DENISE wrapper class (`DeniseInterface`):**
 - Initialize DENISE API with correct paths and parameters
-- Configure for STH model: NPROCX=5, NPROCY=3, PHYSICS=1 (PSV)
+- Configure for STH model: NPROCX=7, NPROCY=2, PHYSICS=1 (PSV)
 - `generate_observed_data(true_model, src, rec)` — run forward on true model, save seismograms as target data
 - `compute_gradient(model, src, rec)` — run 1-iter FWI, return (misfit, grad_vp, grad_vs, grad_rho)
 - Handle file I/O: write model binaries, read gradient binaries, parse misfit log
@@ -194,7 +193,7 @@ Notebook calls into `.py` modules; no duplicated logic.
 | CNN input | (28, 223, ~1250) per component |
 | Optimizer | Adam, lr=0.0025 |
 | Iterations | ~350 |
-| MPI | 15 cores (5x3) |
+| MPI | 14 cores (7x2) |
 | DENISE physics | 2D-PSV (elastic) |
 | FD order | 8 |
 
