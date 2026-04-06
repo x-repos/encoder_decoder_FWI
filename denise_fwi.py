@@ -166,17 +166,9 @@ class DeniseInterface:
             d.DT = d._check_stability(maxvp, maxvs)
         d.NT = int(d.TIME / d.DT)
 
-        # --- Write lambda/mu model files for INVMAT1=3 -------------------------
-        from pyapi_denise import _write_binary
-        mu_arr = rho * vs**2
-        lam_arr = rho * (vp**2 - 2.0 * vs**2)
-        _write_binary(lam_arr, d.MFILE + '.lam')
-        _write_binary(mu_arr, d.MFILE + '.mu')
-
         # --- Configure single-iteration FWI ------------------------------------
         d.ITERMAX = 1
-        d.INVMAT1 = 3       # gradient in lambda/mu/rho (produces all 3 files)
-        d.GRAD_METHOD = 1   # PCG (L-BFGS=2 segfaults on 1 iteration)
+        d.INVMAT1 = 1       # gradient directly in Vp/Vs/rho
         d.fwi_stages = []
         d.add_fwi_stage(
             pro=0.0,       # don't terminate early
@@ -203,17 +195,12 @@ class DeniseInterface:
             misfit = self._compute_misfit_from_seismograms(d)
 
         # --- Read gradients ----------------------------------------------------
-        # With INVMAT1=3, DENISE writes lambda/mu/rho gradients:
-        #   _c.old     -> dE/dlambda
-        #   _c_u.old   -> dE/dmu
+        # With INVMAT1=1, DENISE writes Vp/Vs/rho gradients directly:
+        #   _c.old     -> dE/dVp
+        #   _c_u.old   -> dE/dVs
         #   _c_rho.old -> dE/drho
-        # Convert to Vp/Vs/rho via chain rule:
-        #   lambda = rho*(Vp^2 - 2*Vs^2),  mu = rho*Vs^2
-        grad_lam, grad_mu, grad_rho_lame = self._read_gradients(d)
-
-        grad_vp = grad_lam * (2.0 * rho * vp)
-        grad_vs = grad_lam * (-4.0 * rho * vs) + grad_mu * (2.0 * rho * vs)
-        grad_rho = grad_lam * (vp**2 - 2.0 * vs**2) + grad_mu * vs**2
+        # No chain rule conversion needed.
+        grad_vp, grad_vs, grad_rho = self._read_gradients(d)
 
         return misfit, grad_vp, grad_vs, grad_rho
 
