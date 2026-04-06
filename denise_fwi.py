@@ -166,8 +166,18 @@ class DeniseInterface:
             d.DT = d._check_stability(maxvp, maxvs)
         d.NT = int(d.TIME / d.DT)
 
+        # --- Write lambda/mu model files for INVMAT1=3 -------------------------
+        # INVMAT1=3 (lambda/mu/rho parameterization) requires .lam and .mu files
+        from pyapi_denise import _write_binary
+        mu_arr = rho * vs**2
+        lam_arr = rho * (vp**2 - 2.0 * vs**2)
+        _write_binary(lam_arr, d.MFILE + '.lam')
+        _write_binary(mu_arr, d.MFILE + '.mu')
+
         # --- Configure single-iteration FWI ------------------------------------
         d.ITERMAX = 1
+        d.INVMAT1 = 3       # gradient in lambda/mu/rho parameterization
+        d.GRAD_METHOD = 1   # PCG (L-BFGS=2 segfaults on 1 iteration)
         d.fwi_stages = []
         d.add_fwi_stage(
             pro=0.0,       # don't terminate early
@@ -175,14 +185,11 @@ class DeniseInterface:
             fc_low=0.0,
             fc_high=0.0,
             lnorm=2,       # L2 norm
+            gamma=1,       # full step length
             stf=0,         # no source-time-function inversion
         )
 
         # --- Run FWI -----------------------------------------------------------
-        # Note: DENISE may segfault in L-BFGS after writing gradients.
-        # The adjoint gradients are written to jacobian/ before the crash,
-        # so we proceed to read them regardless.
-        # Redirect stdout/stderr to log file to keep terminal clean.
         log_file = os.path.join(self.fwi_folder, "denise_run.log")
         cmd_suffix = f" > {log_file} 2>&1"
         with contextlib.redirect_stdout(io.StringIO()), \
@@ -192,28 +199,27 @@ class DeniseInterface:
                   run_command=self.run_command + cmd_suffix)
 
         # --- Read misfit -------------------------------------------------------
-        # DENISE writes the misfit log after the L-BFGS update step, which may
-        # fail on the first iteration.  Fall back to computing the L2 misfit
-        # from the synthetic (written by FWI) and observed seismograms.
         misfit = self._read_misfit(d.MISFIT_LOG_FILE)
         if misfit is None:
             misfit = self._compute_misfit_from_seismograms(d)
 
         # --- Read gradients ----------------------------------------------------
-        # DENISE writes gradients in Lame-parameter space: dE/dlambda (_p.old)
-        # and dE/dmu (_c.old).  It also writes Vp/Vs gradient files (_p_vp.old,
-        # _p_vs.old) but those may be incomplete if the L-BFGS step segfaults.
-        # We read the lambda/mu gradients and convert to Vp/Vs/rho gradients
-        # using the chain rule:
+        # With INVMAT1=3, DENISE writes three gradient files:
+        #   _c.old     -> dE/dlambda
+        #   _c_u.old   -> dE/dmu
+        #   _c_rho.old -> dE/drho
+        # Convert to Vp/Vs/rho using the chain rule:
         #   lambda = rho*(Vp^2 - 2*Vs^2),  mu = rho*Vs^2
         #   dE/dVp  = dE/dlambda * 2*rho*Vp
         #   dE/dVs  = dE/dlambda * (-4*rho*Vs) + dE/dmu * 2*rho*Vs
-        #   dE/drho = dE/dlambda * (Vp^2 - 2*Vs^2) + dE/dmu * Vs^2
-        grad_lambda, grad_mu = self._read_lame_gradients(d)
+        #   dE/drho = dE/dlambda * (Vp^2 - 2*Vs^2) + dE/dmu * Vs^2 + dE/drho_direct
+        grad_lam, grad_mu, grad_rho_direct = self._read_lame_gradients(d)
 
-        grad_vp = grad_lambda * (2.0 * rho * vp)
-        grad_vs = grad_lambda * (-4.0 * rho * vs) + grad_mu * (2.0 * rho * vs)
-        grad_rho = grad_lambda * (vp**2 - 2.0 * vs**2) + grad_mu * (vs**2)
+        grad_vp = grad_lam * (2.0 * rho * vp)
+        grad_vs = grad_lam * (-4.0 * rho * vs) + grad_mu * (2.0 * rho * vs)
+        grad_rho = (grad_lam * (vp**2 - 2.0 * vs**2)
+                    + grad_mu * (vs**2)
+                    + grad_rho_direct)
 
         return misfit, grad_vp, grad_vs, grad_rho
 
@@ -241,53 +247,53 @@ class DeniseInterface:
             return float(data[-1, 1])
 
     def _read_lame_gradients(self, d):
-        """Read the lambda and mu gradients from the DENISE jacobian output.
+        """Read lambda, mu, and rho gradients from DENISE jacobian output.
 
-        DENISE writes merged gradient files with names like:
-            gradient_<prefix>_p.old   ->  dE/dlambda
-            gradient_<prefix>_c.old   ->  dE/dmu
+        With INVMAT1=3, DENISE writes merged gradient files:
+            gradient_<prefix>_c.old       ->  dE/dlambda
+            gradient_<prefix>_c_u.old     ->  dE/dmu
+            gradient_<prefix>_c_rho.old   ->  dE/drho
 
-        Returns (grad_lambda, grad_mu) as (nz, nx) numpy arrays.
+        Returns (grad_lambda, grad_mu, grad_rho) as (nz, nx) numpy arrays.
         """
         jacobian_dir = os.path.join(self.fwi_folder, "jacobian")
         nz, nx = d.NY, d.NX
-        expected_size = nx * nz  # 294*150 = 44100 elements
+        expected_size = nx * nz
 
         grad_lambda = np.zeros((nz, nx), dtype=np.float32)
         grad_mu = np.zeros((nz, nx), dtype=np.float32)
+        grad_rho = np.zeros((nz, nx), dtype=np.float32)
 
         if not os.path.isdir(jacobian_dir):
-            return grad_lambda, grad_mu
+            return grad_lambda, grad_mu, grad_rho
 
-        # Find merged gradient files (those without PE fragment suffix like .0.0)
-        all_files = os.listdir(jacobian_dir)
-        for fname in all_files:
+        # Find merged gradient files (skip PE fragment files like .0.0)
+        for fname in os.listdir(jacobian_dir):
             fpath = os.path.join(jacobian_dir, fname)
-            # Skip directories and PE-fragment files (e.g., *.0.0, *.1.1)
             if os.path.isdir(fpath):
                 continue
-            # Fragment files have numeric extensions like .X.Y
             parts = fname.rsplit(".", 2)
             if len(parts) >= 3 and parts[-1].isdigit() and parts[-2].isdigit():
                 continue
 
-            # Read binary file
             data = np.fromfile(fpath, dtype="<f4")
             if data.size != expected_size:
                 continue
 
-            # Reshape: DENISE stores (NX, NY) column-major, need transpose+flip
-            arr = data.reshape(nx, nz).T[::-1].copy()
+            # Reshape: DENISE stores (NX, NY), need transpose+flip
+            arr = np.flipud(data.reshape(nx, nz).T).copy()
 
-            # Identify the gradient type from the filename
-            # Lambda gradient: filename contains "_p.old" but NOT "_p_v"
-            # Mu gradient: filename contains "_c.old"
-            if "_c.old" in fname:
+            # Identify gradient type from filename (INVMAT1=3 convention)
+            # Strip control characters for matching
+            clean = fname.replace(chr(14), "")
+            if "_c_rho.old" in clean:
+                grad_rho = arr
+            elif "_c_u.old" in clean:
                 grad_mu = arr
-            elif "_p.old" in fname and "_p_v" not in fname:
+            elif "_c.old" in clean:
                 grad_lambda = arr
 
-        return grad_lambda, grad_mu
+        return grad_lambda, grad_mu, grad_rho
 
     def _compute_misfit_from_seismograms(self, d):
         """Compute L2 misfit from synthetic vs observed seismograms.
