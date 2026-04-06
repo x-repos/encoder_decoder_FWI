@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+wheels/
+
+# Virtual environments
+.venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# DENISE outputs
+outputs*/
+out_fine/
+gradients/
+
+# DENISE partition files
+par/start/*.denise.*
+
+# DENISE runtime dirs (regenerated)
+par/su/
+par/snap/*.bin*
+par/log/
+par/jacobian/
+par/model/
+
+# Large binary files
+*.npy
+*.su
+*.bin
+
+# IDE
+.vscode/
+.idea/
